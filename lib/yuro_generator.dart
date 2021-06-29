@@ -1,7 +1,11 @@
 library yuro_generator;
 
-/// A Calculator.
-class Calculator {
-  /// Returns [value] plus 1.
-  int addOne(int value) => value + 1;
-}
+export 'retrofit/annotation.dart';
+export 'retrofit/retrofit.dart';
+
+import 'package:build/build.dart';
+import 'package:source_gen/source_gen.dart';
+
+import 'retrofit/retrofit.dart';
+
+Builder retrofitGenerator(BuilderOptions options) => SharedPartBuilder([RetrofitGenerator()], 'retrofit');

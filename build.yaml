@@ -1,0 +1,13 @@
+targets:
+  $default:
+    builders:
+      yuro_generator|retrofit:
+        enabled: true
+builders:
+  retrofit:
+    import: "package:yuro_generator/yuro_generator.dart"
+    builder_factories: [ "retrofitGenerator" ]
+    build_extensions: { ".dart": [ "retrofit.g.part" ] }
+    auto_apply: dependents
+    build_to: cache
+    applies_builders: [ "source_gen|combining_builder" ]
