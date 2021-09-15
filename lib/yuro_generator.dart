@@ -1,6 +1,5 @@
 library yuro_generator;
 
-export 'retrofit/annotation.dart';
 export 'retrofit/retrofit.dart';
 
 import 'package:build/build.dart';

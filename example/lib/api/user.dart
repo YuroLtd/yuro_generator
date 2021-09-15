@@ -2,8 +2,7 @@ import 'dart:ffi';
 
 import 'package:example/api/task.dart';
 import 'package:yuro/yuro.dart';
-
-import 'package:yuro_generator/yuro_generator.dart';
+import 'package:yuro_annotation/yuro_annotation.dart';
 
 part 'user.g.dart';
 

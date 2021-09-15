@@ -8,7 +8,7 @@ import 'package:code_builder/code_builder.dart';
 import 'package:dart_style/dart_style.dart';
 import 'package:source_gen/source_gen.dart';
 
-import 'annotation.dart' as retrofit;
+import 'package:yuro_annotation/yuro_annotation.dart' as retrofit;
 
 part 'retrofit.g.dart';
 
@@ -203,7 +203,7 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
 
     final receiveProgress = method.getFirstParameterAnnotation(retrofit.ReceiveProgress);
     if (receiveProgress != null) {
-      if (receiveProgress.item1.type.getDisplayString(withNullability: false)  == 'void Function(int, int)') {
+      if (receiveProgress.item1.type.getDisplayString(withNullability: false) == 'void Function(int, int)') {
         composeArgs[_receiveProgressVar] = refer(receiveProgress.item1.displayName);
       } else {
         throw InvalidGenerationSourceError(
@@ -430,7 +430,6 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
 
     final receiveProgress = composeArgs.remove(_receiveProgressVar);
     if (receiveProgress != null) copyWithTypeArguments[_receiveProgressVar] = receiveProgress;
-
 
     return refer('Options')
         .newInstance([], optionsArgs)

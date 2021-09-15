@@ -16,7 +16,5 @@ dependencies:
   dart_style: ^2.0.3
   analyzer: ^1.7.1
 
-
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
+  yuro_annotation:
+    path: ../yuro_annotation
