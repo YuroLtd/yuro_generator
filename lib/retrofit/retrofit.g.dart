@@ -13,6 +13,7 @@ extension DartTypeExt on DartType {
 
   bool get isBasicType =>
       checkType(String) ||
+      checkType(bool) ||
       checkType(int) ||
       checkType(double) ||
       checkType(num) ||

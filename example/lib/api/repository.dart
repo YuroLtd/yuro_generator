@@ -21,7 +21,4 @@ Future<void> aa() async {
 
 void test() async {
   final repository = Repository();
-// final a = await repository.userApi.getUser2('extra', uid: 'uid');
-
-  final b = await aa();
 }

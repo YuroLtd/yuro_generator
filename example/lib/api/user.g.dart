@@ -13,6 +13,10 @@ class UserApiImpl implements UserApi {
 
   String? _baseUrl;
 
+  void test(){
+
+  }
+
   @override
   Future<Task> getUser19(cancelToken, sendProgress, receivedProgress) async {
     final headers = <String, dynamic>{};

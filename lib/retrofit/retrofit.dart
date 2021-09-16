@@ -52,7 +52,7 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
       ..constructors.addAll(_generateConstructors(annotation))
       // 方法
       ..methods.addAll(_generateMethods(element)));
-    return DartFormatter(pageWidth: 120).format('${classBuilder.accept(DartEmitter())}');
+    return DartFormatter().format('${classBuilder.accept(DartEmitter())}');
   }
 
   /// 生成成员变量
@@ -119,18 +119,24 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
                       })));
             // 方法体
             final bodyBlocks = <Code>[];
+            final httpMethod = method.getFirstAnnotation(_httpMethodTypes);
+            if (httpMethod == null) {
+              throw InvalidGenerationSourceError(
+                'The method must have an annotation similar to @GET or other!',
+                element: method,
+              );
+            }
             // @Header,@Headers注解
             bodyBlocks.add(_generateHeaders(method));
             // @Extra,@Extras
             bodyBlocks.add(_generateExtras(method));
             // @Query,@QueryMap注解
-            bodyBlocks.addAll(_generateQueryMap(method));
+            bodyBlocks.addAll(_generateQueryMap(method, httpMethod));
             // @Filed、@FiledMap、@Part、@PartMap
             bodyBlocks.addAll(_generateData(method));
             //
-            final httpMethod = method.getFirstAnnotation(_httpMethodTypes);
             final optionsArgs = <String, Expression>{
-              _methodVar: literal(httpMethod?.peek('method')?.stringValue),
+              _methodVar: literal(httpMethod.peek('method')?.stringValue),
               _headersVar: refer(_headersVar),
               _extrasVar: refer(_extrasVar),
             };
@@ -180,9 +186,7 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
         composeArgs[_cancelTokenVar] = refer(cancelToken.item1.displayName);
       } else {
         throw InvalidGenerationSourceError(
-          '''
-          @CancelRequest can only be used for parameters whose type is `CancelToken`!
-          ''',
+          '@CancelRequest can only be used for parameters whose type is `CancelToken`!',
           element: method,
         );
       }
@@ -193,9 +197,7 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
         composeArgs[_sendProgressVar] = refer(sendProgress.item1.displayName);
       } else {
         throw InvalidGenerationSourceError(
-          '''
-          @SendProgress can only be used for parameters whose type is `ProgressCallback`!
-          ''',
+          '@SendProgress can only be used for parameters whose type is `ProgressCallback`!',
           element: method,
         );
       }
@@ -207,9 +209,7 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
         composeArgs[_receiveProgressVar] = refer(receiveProgress.item1.displayName);
       } else {
         throw InvalidGenerationSourceError(
-          '''
-          @ReceiveProgress can only be used for parameters whose type is `ProgressCallback`!
-          ''',
+          '@ReceiveProgress can only be used for parameters whose type is `ProgressCallback`!',
           element: method,
         );
       }
@@ -267,16 +267,18 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
   }
 
   /// 解析@Query和@QueryMap生成代码
-  List<Code> _generateQueryMap(MethodElement method) {
+  List<Code> _generateQueryMap(MethodElement method, ConstantReader httpMethod) {
     final blocks = <Code>[];
     // @Query
     final queryAnnotation = method.getParameterAnnotations(retrofit.Query);
     final queryParameters = queryAnnotation.map((k, v) {
-      if (k.type.isBasicType) {
+      if (k.type.isBasicType || k.type.isDartCoreList) {
         return MapEntry(literalString(v.peek('name')?.stringValue ?? k.displayName), refer(k.displayName));
       } else {
-        throw InvalidGenerationSourceError('Only supports int, double, bool, String, num, ffi.Float, ffi.Double!',
-            element: method);
+        throw InvalidGenerationSourceError(
+          'Only supports int, double, bool, String, num, ffi.Float, ffi.Double, List!',
+          element: method,
+        );
       }
     });
     blocks.add(literalMap(queryParameters.map((k, v) => MapEntry(k, v)), refer('String'), refer('dynamic'))
@@ -290,14 +292,16 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
       late Expression value;
       if (!element.type.isBasicType && !element.type.isCollectionType) {
         final cle = element.type.element as ClassElement;
-        if (cle.hasMethod('toJson')) {
-          throw InvalidGenerationSourceError('The `toJson()` method must be implemented by class `${cle.displayName}`!',
-              element: method);
+        if (!cle.hasMethod('toJson')) {
+          throw InvalidGenerationSourceError(
+            'The `toJson()` method must be implemented by class `${cle.displayName}`!',
+            element: method,
+          );
         }
         value = nullable
             ? refer(displayName).nullSafeProperty('toJson').call([])
             : refer(displayName).property('toJson').call([]);
-      } else if (element.type.toString() == 'Map<String, dynamic>${nullable ? '?' : ''}') {
+      } else if (element.type.isDartCoreMap) {
         value = refer(displayName);
       } else {
         throw InvalidGenerationSourceError('`${element.type.toString()}` not supported!', element: method);
@@ -310,6 +314,9 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
       final expression = refer(buffer.toString());
       blocks.add(refer('$_queryParametersVar.addAll').call([expression]).statement);
     });
+    if (httpMethod.peek('method')?.stringValue == retrofit.HttpMethod.GET) {
+      blocks.add(refer('$_queryParametersVar').property('removeWhere').call([refer('(k, v) => v == null')]).statement);
+    }
     return blocks;
   }
 
@@ -334,10 +341,11 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
         late Expression value;
         if (!element.type.isBasicType && !element.type.isCollectionType) {
           final cle = element.type.element as ClassElement;
-          if (cle.hasMethod('toJson')) {
+          if (!cle.hasMethod('toJson')) {
             throw InvalidGenerationSourceError(
-                'The `toJson()` method must be implemented by class `${cle.displayName}`!',
-                element: method);
+              'The `toJson()` method must be implemented by class `${cle.displayName}`!',
+              element: method,
+            );
           }
           value = nullable
               ? refer(displayName).nullSafeProperty('toJson').call([])
@@ -354,20 +362,22 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
         blocks.add(refer('$_dataVar.addAll').call([expression]).statement);
       });
     } else {
-      // @Filed
+      // @Field
       final filedAnnotation = method.getParameterAnnotations(retrofit.Field);
       final filedParameters = filedAnnotation.map((k, v) {
-        if (k.type.isBasicType) {
+        if (k.type.isBasicType || k.type.isDartCoreList) {
           return MapEntry(literalString(v.peek('name')?.stringValue ?? k.displayName), refer(k.displayName));
         } else {
-          throw InvalidGenerationSourceError('Only supports int, double, bool, String, num, ffi.Float, ffi.Double!',
-              element: method);
+          throw InvalidGenerationSourceError(
+            ' Only supports int, double, bool, String, num, ffi.Float, ffi.Double, List!',
+            element: method,
+          );
         }
       });
       blocks.add(literalMap(filedParameters.map((k, v) => MapEntry(k, v)), refer('String'), refer('dynamic'))
           .assignFinal(_dataVar)
           .statement);
-      // @FiledMap
+      // @FieldMap
       final fieldMapMapAnnotation = method.getParameterAnnotations(retrofit.FieldMap);
       fieldMapMapAnnotation.keys.forEach((element) {
         final displayName = element.displayName;
@@ -375,18 +385,22 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
         late Expression value;
         if (!element.type.isBasicType && !element.type.isCollectionType) {
           final cle = element.type.element as ClassElement;
-          if (cle.hasMethod('toJson')) {
+          if (!cle.hasMethod('toJson')) {
             throw InvalidGenerationSourceError(
-                'The `toJson()` method must be implemented by class `${cle.displayName}`!',
-                element: method);
+              'The `toJson()` method must be implemented by class `${cle.displayName}`!',
+              element: method,
+            );
           }
           value = nullable
               ? refer(displayName).nullSafeProperty('toJson').call([])
               : refer(displayName).property('toJson').call([]);
-        } else if (element.type.toString() == 'Map<String, dynamic>${nullable ? '?' : ''}') {
+        } else if (element.type.isDartCoreMap) {
           value = refer(displayName);
         } else {
-          throw InvalidGenerationSourceError('`${element.type.toString()}` not supported!', element: method);
+          throw InvalidGenerationSourceError(
+            '`${element.type.toString()}` is not supported by @FieldMap!',
+            element: method,
+          );
         }
         final emitter = DartEmitter();
         final buffer = StringBuffer();
@@ -402,8 +416,8 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
   }
 
   /// 解析@Path生成代码
-  Expression _generatePath(MethodElement method, ConstantReader? httpMethod) {
-    String? path = httpMethod?.peek('path')?.stringValue;
+  Expression _generatePath(MethodElement method, ConstantReader httpMethod) {
+    String? path = httpMethod.peek('path')?.stringValue;
     final pathAnnotations = method.getParameterAnnotations(retrofit.Path);
     pathAnnotations.forEach((key, value) {
       final replaceStr = value.peek('name')?.stringValue ?? key.displayName;
@@ -537,8 +551,9 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
       } else {
         final displayName = returnInnerType.getDisplayString(withNullability: false);
         final cle = returnInnerType.element as ClassElement;
-        if (!cle.hasMethod('fromJson') && !cle.hasConstructor('fromJson')) {
-          throw InvalidGenerationSourceError('The `fromJson()` method must be implemented by class `${cle.name}`!',
+        if (!cle.hasConstructor('fromJson')) {
+          throw InvalidGenerationSourceError(
+              'The constructor method `fromJson()` must be implemented by class `${cle.name}`!',
               element: method);
         }
         codes.addAll([
@@ -558,8 +573,9 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
     //
     final displayName = returnType.getDisplayString(withNullability: false);
     final cle = returnType.element as ClassElement;
-    if (!cle.hasMethod('fromJson') && !cle.hasConstructor('fromJson')) {
-      throw InvalidGenerationSourceError('The `fromJson()` method must be implemented by class `${cle.name}`!',
+    if (!cle.hasConstructor('fromJson')) {
+      throw InvalidGenerationSourceError(
+          'The constructor method `fromJson()` must be implemented by class `${cle.name}`!',
           element: method);
     }
     codes.add(refer('await $_dioField.fetch')
