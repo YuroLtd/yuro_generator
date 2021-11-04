@@ -7,15 +7,17 @@ import 'package:build/build.dart';
 import 'package:code_builder/code_builder.dart';
 import 'package:dart_style/dart_style.dart';
 import 'package:source_gen/source_gen.dart';
-
 import 'package:yuro_annotation/yuro_annotation.dart' as retrofit;
+
+import '../util/string.dart';
 
 part 'retrofit.g.dart';
 
 class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
   static const _httpMethodTypes = [retrofit.GET, retrofit.POST, retrofit.DELETE, retrofit.PATCH, retrofit.PUT];
-  static const _baseUrlField = '_baseUrl';
   static const _dioField = '_dio';
+  static const _baseUrlField = '_baseUrl';
+  static const _pathField = '_path';
 
   static const _baseUrlVar = 'baseUrl';
   static const _headersVar = 'headers';
@@ -40,47 +42,62 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
     return _implClass(element, annotation);
   }
 
-  String _implClass(ClassElement element, ConstantReader annotation) {
+  String _implClass(ClassElement element, ConstantReader classAnnotation) {
     final classBuilder = Class((classBuilder) => classBuilder
       // 类名
       ..name = '${element.name}Impl'
       // 实现
       ..implements.add(refer(element.name))
       // 成员变量
-      ..fields.addAll(_generateFields(annotation))
+      ..fields.addAll(_generateFields(classAnnotation))
       // 构造函数
-      ..constructors.addAll(_generateConstructors(annotation))
+      ..constructors.addAll(_generateConstructors(classAnnotation))
       // 方法
-      ..methods.addAll(_generateMethods(element)));
+      ..methods.addAll(_generateMethods(classAnnotation, element)));
     return DartFormatter().format('${classBuilder.accept(DartEmitter())}');
   }
 
   /// 生成成员变量
-  List<Field> _generateFields(ConstantReader annotation) => [
-        Field((fieldBuilder) => fieldBuilder
-          ..name = _dioField
-          ..type = refer('Dio')
-          ..modifier = FieldModifier.final$),
-        Field((fieldBuilder) => fieldBuilder
-          ..name = _baseUrlField
-          ..type = refer('String?')),
-      ];
+  List<Field> _generateFields(ConstantReader classAnnotation) {
+    final fields = [
+      Field((fieldBuilder) => fieldBuilder
+        ..name = _dioField
+        ..type = refer('Dio')
+        ..modifier = FieldModifier.final$)
+    ];
+    final baseUrl = classAnnotation.peek('baseUrl')?.stringValue;
+    if (!baseUrl.isNullOrBlank()) {
+      final field = Field((fieldBuilder) => fieldBuilder
+        ..name = _baseUrlField
+        ..type = refer('String')
+        ..static = true
+        ..modifier = FieldModifier.constant
+        ..assignment = Code("'$baseUrl'"));
+      fields.add(field);
+    }
+    final path = classAnnotation.peek('path')?.stringValue;
+    if (!path.isNullOrBlank()) {
+      final field = Field((fieldBuilder) => fieldBuilder
+        ..name = _pathField
+        ..type = refer('String')
+        ..static = true
+        ..modifier = FieldModifier.constant
+        ..assignment = Code("'$path'"));
+      fields.add(field);
+    }
+    return fields;
+  }
 
   /// 生成构造函数
-  List<Constructor> _generateConstructors(ConstantReader annotation) => [
-        Constructor((constructorBuilder) {
-          constructorBuilder.requiredParameters.add(Parameter((parameterBuilder) => parameterBuilder
-            ..name = '_dio'
-            ..toThis = true));
-          final baseUrl = annotation.peek('baseUrl')?.stringValue;
-          if (baseUrl != null && baseUrl.isNotEmpty) {
-            constructorBuilder.body = Block.of([Code('_baseUrl = ${literal(baseUrl)};')]);
-          }
-        })
+  List<Constructor> _generateConstructors(ConstantReader classAnnotation) => [
+        Constructor((constructorBuilder) =>
+            constructorBuilder.requiredParameters.add(Parameter((parameterBuilder) => parameterBuilder
+              ..name = '_dio'
+              ..toThis = true)))
       ];
 
   /// 生成对应方法
-  List<Method> _generateMethods(ClassElement classElement) => classElement.methods
+  List<Method> _generateMethods(ConstantReader classAnnotation, ClassElement classElement) => classElement.methods
       .where((method) {
         final httpMethod = method.containAnnotations(_httpMethodTypes);
         final isAbstract = method.isAbstract;
@@ -131,7 +148,7 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
             // @Extra,@Extras
             bodyBlocks.add(_generateExtras(method));
             // @Query,@QueryMap注解
-            bodyBlocks.addAll(_generateQueryMap(method, httpMethod));
+            bodyBlocks.addAll(_generateQueryMap(httpMethod, method));
             // @Filed、@FiledMap、@Part、@PartMap
             bodyBlocks.addAll(_generateData(method));
             //
@@ -141,8 +158,8 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
               _extrasVar: refer(_extrasVar),
             };
             final composeArgs = <String, Expression>{
-              _baseUrlVar: refer(_baseUrlField),
-              _pathVar: _generatePath(method, httpMethod),
+              _baseUrlVar: _generateBaseUrl(classAnnotation),
+              _pathVar: _generatePath(classAnnotation, httpMethod, method),
               _queryParametersVar: refer(_queryParametersVar),
             };
             // @FormUrlEncoded @Multipart
@@ -267,7 +284,7 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
   }
 
   /// 解析@Query和@QueryMap生成代码
-  List<Code> _generateQueryMap(MethodElement method, ConstantReader httpMethod) {
+  List<Code> _generateQueryMap(ConstantReader httpMethod, MethodElement method) {
     final blocks = <Code>[];
     // @Query
     final queryAnnotation = method.getParameterAnnotations(retrofit.Query);
@@ -416,23 +433,29 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
   }
 
   /// 解析@Path生成代码
-  Expression _generatePath(MethodElement method, ConstantReader httpMethod) {
+  Expression _generateBaseUrl(ConstantReader classAnnotation) {
+    final hasBaseUrlField = (classAnnotation.peek('baseUrl')?.stringValue).isNullOrBlank();
+    return !hasBaseUrlField ? refer(_baseUrlField) : refer(_dioField).property('options').property('baseUrl');
+  }
+
+  /// 解析@Path生成代码
+  Expression _generatePath(ConstantReader classAnnotation, ConstantReader httpMethod, MethodElement method) {
     String? path = httpMethod.peek('path')?.stringValue;
     final pathAnnotations = method.getParameterAnnotations(retrofit.Path);
     pathAnnotations.forEach((key, value) {
       final replaceStr = value.peek('name')?.stringValue ?? key.displayName;
       path = path?.replaceFirst('{$replaceStr}', '\$${key.displayName}');
     });
-    return literal(path);
+    final hasPathField = (classAnnotation.peek('path')?.stringValue).isNullOrBlank();
+    return !hasPathField ? literal('\$$_pathField$path') : literal(path);
   }
 
   /// 生成options变量
   Code _generateRequestOptions(Map<String, Expression> optionsArgs, Map<String, Expression> composeArgs) {
     final path = composeArgs.remove(_pathVar)!;
     final baseUrl = composeArgs.remove(_baseUrlVar)!;
-    final copyWithTypeArguments = {
-      _baseUrlVar: baseUrl.ifNullThen(refer(_dioField).property('options').property('baseUrl'))
-    };
+
+    final copyWithTypeArguments = <String, Expression>{_baseUrlVar: baseUrl};
     final contentType = composeArgs.remove(_contentTypeVar);
     if (contentType != null) copyWithTypeArguments[_contentTypeVar] = contentType;
 

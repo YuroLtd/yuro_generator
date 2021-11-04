@@ -6,9 +6,30 @@ import 'package:yuro_annotation/yuro_annotation.dart';
 
 part 'user.g.dart';
 
-// @Retrofit(baseUrl: 'https://123123/')
 @Retrofit()
+abstract class UserApi1 {
+  @GET('/a/b/c')
+  Future<void> test();
+}
+
+@Retrofit(baseUrl: 'https://22222')
+abstract class UserApi2 {
+  @GET('/a/b/c')
+  Future<void> test();
+}
+
+@Retrofit(path: '/user3')
+abstract class UserApi3 {
+  @GET('/a/b/c')
+  Future<void> test();
+}
+
+// @Retrofit(baseUrl: 'https://123123/')
+@Retrofit(baseUrl: 'https://44444', path: '/user4')
 abstract class UserApi {
+  @GET('/a/b/c')
+  Future<void> test();
+
   // @GET('a/b/c/{id}')
   // Future getUser(@Path() String id);
   //
@@ -68,13 +89,12 @@ abstract class UserApi {
   // @Multipart()
   // Future<Map> getUser18(@Part() String id, @PartMap() Map<String, dynamic> map);
 
-  @GET('a/b/c/')
+  @GET('/a/b/c')
   Future<Task> getUser19(
     @CancelRequest() CancelToken cancelToken,
     @SendProgress() ProgressCallback sendProgress,
     @ReceiveProgress() ProgressCallback? receivedProgress,
   );
-
 }
 
 class TestImpl {
@@ -82,14 +102,16 @@ class TestImpl {
 
   final Dio _dio;
 
-  String? _baseUrl;
+  static const String _baseUrl = '';
+
+  String? _path;
 
   Future<List<int?>> getUser3(id) async {
     final headers = <String, dynamic>{};
     final extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final options = Options(method: 'GET', headers: headers, extra: extra)
-        .compose(_dio.options, 'a/b/c/$id', queryParameters: queryParameters)
+        .compose(_dio.options, '${_path ?? ''}/a/b/c/$id', queryParameters: queryParameters)
         .copyWith(baseUrl: _baseUrl ?? _dio.options.baseUrl);
     final response = await _dio.fetch<List<dynamic>>(options);
     return response.data!.cast<int?>();
