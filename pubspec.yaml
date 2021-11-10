@@ -13,7 +13,7 @@ dependencies:
   source_gen: ^1.0.3
   code_builder: ^4.1.0
   dart_style: ^2.0.3
-  analyzer: ^1.7.1
+  analyzer: ^2.7.0
 
   yuro_annotation:
     path: ../yuro_annotation
