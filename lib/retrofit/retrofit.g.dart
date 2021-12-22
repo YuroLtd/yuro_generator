@@ -3,7 +3,7 @@ part of 'retrofit.dart';
 TypeChecker _typeChecker(Type type) => TypeChecker.fromRuntime(type);
 
 extension DartTypeExt on DartType {
-  bool get isNullable => this.nullabilitySuffix == NullabilitySuffix.question;
+  bool get isNullable => nullabilitySuffix == NullabilitySuffix.question;
 
   bool get isDartAsyncStream {
     final element = this.element == null ? null : this.element as ClassElement;
@@ -106,7 +106,7 @@ extension ReferenceExt on Reference {
 extension ExpressionExt on Expression {
   /// [nullable] true 返回this?.<name>  false 返回this!.<name>
   Expression propertyIf(String name, {bool nullable = false}) =>
-      nullable ? this.nullSafeProperty(name) : this.nullChecked.property(name);
+      nullable ? nullSafeProperty(name) : nullChecked.property(name);
 }
 
 extension ClassElementExt on ClassElement {

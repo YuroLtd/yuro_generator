@@ -110,7 +110,7 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
               // 方法名称
               ..name = method.displayName
               // 方法覆写标识
-              ..annotations.add(CodeExpression(Code('override')))
+              ..annotations.add(const CodeExpression(Code('override')))
               // 方法异步标识
               ..modifier = method.returnType.isDartAsyncFuture ? MethodModifier.async : MethodModifier.asyncStar
               // 方法返回类型
@@ -332,7 +332,7 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
       blocks.add(refer('$_queryParametersVar.addAll').call([expression]).statement);
     });
     if (httpMethod.peek('method')?.stringValue == retrofit.HttpMethod.GET) {
-      blocks.add(refer('$_queryParametersVar').property('removeWhere').call([refer('(k, v) => v == null')]).statement);
+      blocks.add(refer(_queryParametersVar).property('removeWhere').call([refer('(k, v) => v == null')]).statement);
     }
     return blocks;
   }
@@ -502,7 +502,7 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
     if (returnType.isBasicType) {
       return [
         refer('await $_dioField.fetch')
-            .call([refer(_optionsVar)], {}, [refer('${returnType.toString()}')])
+            .call([refer(_optionsVar)], {}, [refer(returnType.toString())])
             .assignFinal(_responseVar)
             .statement,
         refer('$_responseVar.data')
@@ -544,8 +544,9 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
             .assignFinal(_responseVar)
             .statement,
       ]);
-      if (returnInnerType == null)
+      if (returnInnerType == null) {
         throw InvalidGenerationSourceError('The generic of `${returnType.toString()}` is null!', element: method);
+      }
 
       if (returnInnerType.isDynamic) {
         codes.add(refer('$_responseVar.data')
