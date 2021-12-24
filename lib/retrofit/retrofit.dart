@@ -492,7 +492,7 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
     if (returnType.isDynamic) {
       return [
         refer('await $_dioField.fetch')
-            .call([refer(_optionsVar)], {}, [refer('dynamic')])
+            .call([refer(_optionsVar)])
             .assignFinal(_responseVar)
             .statement,
         refer('$_responseVar.data').returnedIf(asyncStream: returnAsyncStream).statement
@@ -603,7 +603,7 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
           element: method);
     }
     codes.add(refer('await $_dioField.fetch')
-        .call([refer(_optionsVar)], {}, [refer('Map<String,dynamic>')])
+        .call([refer(_optionsVar)])
         .assignFinal(_responseVar)
         .statement);
     if (returnType.isNullable) {

@@ -1,6 +1,6 @@
 name: yuro_generator
 description: Yuro annotation generator.
-version: 0.1.0
+version: 0.1.1
 homepage: https://github.com/YuroLtd/yuro_kit.git
 
 environment:
