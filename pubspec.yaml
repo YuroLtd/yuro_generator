@@ -14,11 +14,11 @@ dependencies:
   source_gen: ^1.0.3
   code_builder: ^4.1.0
   dart_style: ^2.0.3
-  analyzer: ^2.7.0
+  analyzer: ^4.2.0
 
   yuro_annotation: ^0.1.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^1.0.0
+  flutter_lints: ^2.0.0
