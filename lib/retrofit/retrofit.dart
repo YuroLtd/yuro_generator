@@ -308,7 +308,7 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
       final nullable = element.type.nullabilitySuffix == NullabilitySuffix.question;
       late Expression value;
       if (!element.type.isBasicType && !element.type.isCollectionType) {
-        final cle = element.type.element as ClassElement;
+        final cle = element.type.element2 as ClassElement;
         if (!cle.hasMethod('toJson')) {
           throw InvalidGenerationSourceError(
             'The `toJson()` method must be implemented by class `${cle.displayName}`!',
@@ -357,7 +357,7 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
         final nullable = element.type.nullabilitySuffix == NullabilitySuffix.question;
         late Expression value;
         if (!element.type.isBasicType && !element.type.isCollectionType) {
-          final cle = element.type.element as ClassElement;
+          final cle = element.type.element2 as ClassElement;
           if (!cle.hasMethod('toJson')) {
             throw InvalidGenerationSourceError(
               'The `toJson()` method must be implemented by class `${cle.displayName}`!',
@@ -401,7 +401,7 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
         final nullable = element.type.nullabilitySuffix == NullabilitySuffix.question;
         late Expression value;
         if (!element.type.isBasicType && !element.type.isCollectionType) {
-          final cle = element.type.element as ClassElement;
+          final cle = element.type.element2 as ClassElement;
           if (!cle.hasMethod('toJson')) {
             throw InvalidGenerationSourceError(
               'The `toJson()` method must be implemented by class `${cle.displayName}`!',
@@ -574,7 +574,7 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
         ]);
       } else {
         final displayName = returnInnerType.getDisplayString(withNullability: false);
-        final cle = returnInnerType.element as ClassElement;
+        final cle = returnInnerType.element2 as ClassElement;
         if (!cle.hasConstructor('fromJson')) {
           throw InvalidGenerationSourceError(
               'The constructor method `fromJson()` must be implemented by class `${cle.name}`!',
@@ -596,7 +596,7 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
 
     //
     final displayName = returnType.getDisplayString(withNullability: false);
-    final cle = returnType.element as ClassElement;
+    final cle = returnType.element2 as ClassElement;
     if (!cle.hasConstructor('fromJson')) {
       throw InvalidGenerationSourceError(
           'The constructor method `fromJson()` must be implemented by class `${cle.name}`!',
