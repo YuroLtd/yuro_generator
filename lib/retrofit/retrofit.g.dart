@@ -6,7 +6,7 @@ extension DartTypeExt on DartType {
   bool get isNullable => nullabilitySuffix == NullabilitySuffix.question;
 
   bool get isDartAsyncStream {
-    final element = this.element == null ? null : this.element as ClassElement;
+    final element = element2 == null ? null : element2 as ClassElement;
     if (element == null) return false;
     return element.name == 'Stream' && element.library.isDartAsync;
   }

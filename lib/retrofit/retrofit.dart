@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:ffi';
 
 import 'package:analyzer/dart/element/element.dart';
@@ -491,22 +493,16 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
     // dynamic
     if (returnType.isDynamic) {
       return [
-        refer('await $_dioField.fetch')
-            .call([refer(_optionsVar)])
-            .assignFinal(_responseVar)
-            .statement,
+        refer('await $_dioField.fetch').call([refer(_optionsVar)]).assignFinal(_responseVar).statement,
         refer('$_responseVar.data').returnedIf(asyncStream: returnAsyncStream).statement
       ];
     }
     // int、double、 bool、 String、num、ffi.Float、ffi.Double
     if (returnType.isBasicType) {
       return [
-        refer('await $_dioField.fetch')
-            .call([refer(_optionsVar)], {}, [refer(returnType.toString())])
-            .assignFinal(_responseVar)
-            .statement,
-        refer('$_responseVar.data')
-            .returnedIf(nullable: returnType.isNullable, asyncStream: returnAsyncStream)
+        refer('await $_dioField.fetch').call([refer(_optionsVar)]).assignFinal(_responseVar).statement,
+        refer('$_responseVar.data as ${returnType.getDisplayString(withNullability: returnType.isNullable)}')
+            .returnedIf(asyncStream: returnAsyncStream)
             .statement,
       ];
     }
@@ -602,10 +598,7 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.Retrofit> {
           'The constructor method `fromJson()` must be implemented by class `${cle.name}`!',
           element: method);
     }
-    codes.add(refer('await $_dioField.fetch')
-        .call([refer(_optionsVar)])
-        .assignFinal(_responseVar)
-        .statement);
+    codes.add(refer('await $_dioField.fetch').call([refer(_optionsVar)]).assignFinal(_responseVar).statement);
     if (returnType.isNullable) {
       codes.add(refer('response.data == null ? null :$displayName.fromJson(response.data!)')
           .returnedIf(asyncStream: returnAsyncStream)
