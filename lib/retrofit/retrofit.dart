@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use, avoid_function_literals_in_foreach_calls
 
 import 'dart:ffi';
 

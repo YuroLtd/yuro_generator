@@ -6,9 +6,9 @@ extension DartTypeExt on DartType {
   bool get isNullable => nullabilitySuffix == NullabilitySuffix.question;
 
   bool get isDartAsyncStream {
-    final element = element2 == null ? null : element2 as ClassElement;
     if (element == null) return false;
-    return element.name == 'Stream' && element.library.isDartAsync;
+    final classElement = element as ClassElement;
+    return classElement.name == 'Stream' && classElement.library.isDartAsync;
   }
 
   bool get isBasicType =>
@@ -72,6 +72,7 @@ extension MethodElementExt on MethodElement {
   /// 根据[Type]获取参数注解
   Map<ParameterElement, ConstantReader> getParameterAnnotations(Type type) {
     final map = <ParameterElement, ConstantReader>{};
+    // ignore: avoid_function_literals_in_foreach_calls
     parameters.forEach((element) {
       final annotation = _typeChecker(type).firstAnnotationOf(element);
       if (annotation != null) map[element] = ConstantReader(annotation);

@@ -1,3 +1,7 @@
+## 0.2.2
+
+* Optimize the code.
+
 ## 0.2.1
 
 * remove the generic type of `dio.fetch()` When returning a basic type.

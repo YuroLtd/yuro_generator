@@ -1,6 +1,6 @@
 name: yuro_generator
 description: Yuro annotation generator.
-version: 0.2.1
+version: 0.2.2
 homepage: https://github.com/YuroLtd/yuro_generator
 
 environment:
@@ -9,11 +9,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  build: ^2.1.0
-  source_gen: ^1.2.5
+  build: ^2.3.1
+  source_gen: ^1.2.6
   code_builder: ^4.3.0
   dart_style: ^2.2.4
-  analyzer: ^4.7.0
+  analyzer: ^5.2.0
 
   yuro_annotation: ^0.2.0
 
